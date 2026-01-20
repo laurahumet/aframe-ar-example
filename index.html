@@ -1,41 +1,154 @@
 <!DOCTYPE html>
 <html>
-  <head>
+<head>
     <meta charset="utf-8">
-    <title>Hello, AR World! • A-Frame</title>
-    <meta name="description" content="Hello, AR World! • A-Frame">
-    <script src="https://aframe.io/releases/1.7.1/aframe.min.js"></script>
-    <!-- script src="https://aframe.io/aframe/dist/aframe-master.min.js"></script -->
-    <script>
-      AFRAME.registerComponent('follow-shadow', {
-        schema: {type: 'selector'},
-        init() {this.el.object3D.renderOrder = -1;},
-        tick() {
-          if (this.data) {
-            this.el.object3D.position.copy(this.data.object3D.position);
-            this.el.object3D.position.y-=0.001; // stop z-fighting
-          }
+    <title>Winter AR: Snowmen & Trees</title>
+    <!-- Import A-Frame and the AR/WebXR components -->
+    <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+    <script src="https://unpkg.com/aframe-environment-component@1.3.3/dist/aframe-environment-component.min.js"></script>
+    
+    <style>
+        /* Simple UI to switch between Snowman and Tree */
+        #ui {
+            position: absolute; 
+            bottom: 20px; 
+            left: 0; 
+            width: 100%; 
+            text-align: center; 
+            z-index: 100;
         }
-      });
+        .btn {
+            background: rgba(255, 255, 255, 0.8);
+            border: 2px solid #333;
+            padding: 10px 20px;
+            font-size: 16px;
+            border-radius: 20px;
+            margin: 0 10px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- UI Buttons -->
+    <div id="ui">
+        <button class="btn" onclick="selectModel('snowman')">Select Snowman ⛄</button>
+        <button class="btn" onclick="selectModel('tree')">Select Tree 🌲</button>
+    </div>
+
+    <script>
+        // Global variable to track what we want to place
+        let currentModel = 'snowman';
+
+        function selectModel(model) {
+            currentModel = model;
+            console.log("Selected: " + currentModel);
+        }
+
+        // COMPONENT: Tap to Place
+        // This component listens for a click on the AR reticle and spawns the object
+        AFRAME.registerComponent('tap-place', {
+            init: function () {
+                const scene = document.querySelector('a-scene');
+                
+                // "this.el" is the camera/reticle this component is attached to
+                this.el.addEventListener('click', (event) => {
+                    // Create a new entity container for our object
+                    const newEntity = document.createElement('a-entity');
+                    
+                    // Set the position to wherever the reticle currently is
+                    const touchPoint = this.el.getAttribute('position');
+                    newEntity.setAttribute('position', touchPoint);
+                    newEntity.setAttribute('visible', 'true');
+                    newEntity.setAttribute('scale', '0.5 0.5 0.5'); // Scale down to fit on desks
+
+                    // LOGIC: Construct the Geometry based on selection
+                    if (currentModel === 'snowman') {
+                        // 1. Bottom Sphere
+                        const bottom = document.createElement('a-sphere');
+                        bottom.setAttribute('position', '0 0.5 0');
+                        bottom.setAttribute('radius', '0.5');
+                        bottom.setAttribute('color', '#FFFFFF');
+                        
+                        // 2. Middle Sphere
+                        const middle = document.createElement('a-sphere');
+                        middle.setAttribute('position', '0 1.2 0');
+                        middle.setAttribute('radius', '0.35');
+                        middle.setAttribute('color', '#FFFFFF');
+
+                        // 3. Head Sphere
+                        const head = document.createElement('a-sphere');
+                        head.setAttribute('position', '0 1.7 0');
+                        head.setAttribute('radius', '0.2');
+                        head.setAttribute('color', '#FFFFFF');
+
+                        // 4. Eyes (Simple black spheres)
+                        const eye1 = document.createElement('a-sphere');
+                        eye1.setAttribute('position', '-0.1 1.75 0.18');
+                        eye1.setAttribute('radius', '0.03');
+                        eye1.setAttribute('color', 'black');
+                        
+                        const eye2 = document.createElement('a-sphere');
+                        eye2.setAttribute('position', '0.1 1.75 0.18');
+                        eye2.setAttribute('radius', '0.03');
+                        eye2.setAttribute('color', 'black');
+
+                        newEntity.appendChild(bottom);
+                        newEntity.appendChild(middle);
+                        newEntity.appendChild(head);
+                        newEntity.appendChild(eye1);
+                        newEntity.appendChild(eye2);
+
+                    } else if (currentModel === 'tree') {
+                        // 1. Trunk (Cylinder)
+                        const trunk = document.createElement('a-cylinder');
+                        trunk.setAttribute('position', '0 0.25 0');
+                        trunk.setAttribute('radius', '0.1');
+                        trunk.setAttribute('height', '0.5');
+                        trunk.setAttribute('color', '#8B4513'); // SaddleBrown
+
+                        // 2. Leaves (Stacked Cones)
+                        const leaves1 = document.createElement('a-cone');
+                        leaves1.setAttribute('position', '0 0.75 0');
+                        leaves1.setAttribute('radius-bottom', '0.6');
+                        leaves1.setAttribute('height', '1');
+                        leaves1.setAttribute('color', '#228B22'); // ForestGreen
+                        
+                        const leaves2 = document.createElement('a-cone');
+                        leaves2.setAttribute('position', '0 1.25 0');
+                        leaves2.setAttribute('radius-bottom', '0.45');
+                        leaves2.setAttribute('height', '0.8');
+                        leaves2.setAttribute('color', '#228B22');
+
+                        newEntity.appendChild(trunk);
+                        newEntity.appendChild(leaves1);
+                        newEntity.appendChild(leaves2);
+                    }
+
+                    // Add the constructed entity to the scene
+                    scene.appendChild(newEntity);
+                });
+            }
+        });
     </script>
-  </head>
-  <body>
-    <a-scene
-      reflection="directionalLight: a-light[type=directional]"
-      ar-hit-test="target: #objects;"
-      renderer="colorManagement: true; exposure: 1; toneMapping: ACESFilmic"
-      shadow="type: pcfsoft"
-      xr-mode-ui="XRMode: xr"
-    >
-      <a-light type="directional" light="castShadow:true;" position="1 1 1" intensity="1.57" shadow-camera-automatic="#objects"></a-light>
-      <a-camera position="0 0.4 0" wasd-controls="acceleration:10;"></a-camera>
-      <a-entity id="objects" scale="0.2 0.2 0.2" position="0 0 -1" shadow>
-        <a-box position="-1 0.5 1" rotation="0 45 0" color="#4CC3D9"></a-box>
-        <a-sphere position="0 1.25 -1" radius="1.25" color="#EF2D5E"></a-sphere>
-        <a-cylinder position="1 0.75 1" radius="0.5" height="1.5" color="#FFC65D"></a-cylinder>
-      </a-entity>
-      <a-plane follow-shadow="#objects" material="shader:shadow" shadow="cast:false;" rotation="-90 0 0" width="2" height="2"></a-plane>
-      <a-sky color="#ECECEC" hide-on-enter-ar></a-sky>
+
+    <!-- THE SCENE -->
+    <!-- 'webxr' enables the AR engine. 'hit-test' enables plane detection. -->
+    <a-scene webxr="optionalFeatures: hit-test; overlayElement: #dom-overlay;" ar-hit-test="target: #reticle">
+        
+        <!-- We need a 'reticle' (cursor) to show where the user is pointing on the floor -->
+        <a-entity id="reticle"
+                  geometry="primitive: ring; radiusInner: 0.15; radiusOuter: 0.2"
+                  rotation="-90 0 0"
+                  material="shader: flat; color: white;"
+                  tap-place>
+                  <!-- The 'tap-place' component we wrote above is attached here -->
+        </a-entity>
+
+        <!-- Lighting to make the snowmen look 3D -->
+        <a-entity light="type: ambient; intensity: 0.5;"></a-entity>
+        <a-entity light="type: directional; intensity: 1; position: -1 1 0"></a-entity>
+
     </a-scene>
-  </body>
+</body>
 </html>
